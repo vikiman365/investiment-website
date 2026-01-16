@@ -177,7 +177,7 @@ const MobileMenuButton = styled.button`
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
-  color: #b0b7ff;
+  color: #52525d;
   font-size: 1.25rem;
   cursor: pointer;
   padding: 0.5rem;
@@ -533,7 +533,7 @@ export default function Navigation() {
                 <LoginButton
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => router.push('/login' as any)}
+                  onClick={() => router.push('/auth/login' as any)}
                 >
                   <FaSignInAlt />
                   Login
@@ -541,7 +541,7 @@ export default function Navigation() {
                 <SignUpButton
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => router.push('/signup' as any)}
+                  onClick={() => router.push('/auth/signup' as any)}
                 >
                   <FaUserPlus />
                   Sign Up
@@ -590,7 +590,7 @@ export default function Navigation() {
               whileTap={{ scale: 0.95 }}
               onClick={handleStartInvesting}
             >
-              <FaWallet />
+              
               
             </CTAButton>
 
@@ -686,11 +686,11 @@ export default function Navigation() {
                 
                 {!isAuthenticated ? (
                   <>
-                    <MobileLoginButton onClick={() => handleAuthNavigation('/login')}>
+                    <MobileLoginButton onClick={() => handleAuthNavigation('/auth/login')}>
                       <FaSignInAlt />
                       Login
                     </MobileLoginButton>
-                    <MobileSignUpButton onClick={() => handleAuthNavigation('/signup')}>
+                    <MobileSignUpButton onClick={() => handleAuthNavigation('/auth/signup')}>
                       <FaUserPlus />
                       Create Account
                     </MobileSignUpButton>
@@ -751,7 +751,7 @@ export default function Navigation() {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleStartInvesting}
                 >
-                  <FaWallet />
+                  
                   
                 </CTAButton>
               </div>
