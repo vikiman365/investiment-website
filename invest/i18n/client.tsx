@@ -1,0 +1,20 @@
+'use client'
+
+import { I18nextProvider } from 'react-i18next'
+import i18n from './config'
+import { ReactNode, useEffect, useState } from 'react'
+
+export function I18nProvider({ children, lang }: { children: ReactNode; lang: string }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    i18n.changeLanguage(lang)
+  }, [lang])
+
+  if (!mounted) {
+    return null
+  }
+
+  return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
+}
