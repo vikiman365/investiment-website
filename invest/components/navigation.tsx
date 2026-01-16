@@ -427,7 +427,7 @@ export default function Navigation() {
 
   const handleAuthNavigation = (route: string) => {
     setMobileOpen(false)
-    router.push(route)
+    router.push(route as any)
   }
 
   const handleMobileLinkClick = (item: NavItem) => {
@@ -440,7 +440,7 @@ export default function Navigation() {
   const handleStartInvesting = () => {
     setMobileOpen(false)
     if (pathname !== '/') {
-      router.push('/#cta')
+      router.push('/#cta' as any)
     } else {
       const ctaSection = document.getElementById('cta')
       if (ctaSection) {
@@ -533,7 +533,7 @@ export default function Navigation() {
                 <LoginButton
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => router.push('/login')}
+                  onClick={() => router.push('/login' as any)}
                 >
                   <FaSignInAlt />
                   Login
@@ -541,7 +541,7 @@ export default function Navigation() {
                 <SignUpButton
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => router.push('/signup')}
+                  onClick={() => router.push('/signup' as any)}
                 >
                   <FaUserPlus />
                   Sign Up
@@ -591,7 +591,7 @@ export default function Navigation() {
               onClick={handleStartInvesting}
             >
               <FaWallet />
-              Start Investing
+              
             </CTAButton>
 
             <MobileMenuButton onClick={() => setMobileOpen(!mobileOpen)}>
@@ -752,7 +752,7 @@ export default function Navigation() {
                   onClick={handleStartInvesting}
                 >
                   <FaWallet />
-                  Start Investing Now
+                  
                 </CTAButton>
               </div>
             </MobileMenu>
