@@ -9,9 +9,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEnvelope, faLock, faArrowRight, faGoogle, faFacebook, faExclamationCircle } from '@fortawesome/free-solid-svg-icons'
+import { faEnvelope, faLock, faArrowRight,  faExclamationCircle } from '@fortawesome/free-solid-svg-icons'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { FaFacebook } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
 
 // Define theme colors (same as signup page)
 const theme = {
@@ -360,14 +362,14 @@ export default function LoginPage() {
           </Logo>
 
           <SocialLogin>
-            <SocialButton onClick={() => handleSocialLogin('google')}>
-              <FontAwesomeIcon icon={faGoogle} style={{ color: '#DB4437' }} />
-              Google
-            </SocialButton>
-            <SocialButton onClick={() => handleSocialLogin('facebook')}>
-              <FontAwesomeIcon icon={faFacebook} style={{ color: '#4267B2' }} />
-              Facebook
-            </SocialButton>
+         <SocialButton onClick={() => handleSocialLogin('google')}>
+  <FaGoogle style={{ color: '#DB4437' }} />
+  Google
+</SocialButton>
+<SocialButton onClick={() => handleSocialLogin('facebook')}>
+  <FaFacebook style={{ color: '#4267B2' }} />
+  Facebook
+</SocialButton>
           </SocialLogin>
 
           <Divider>
