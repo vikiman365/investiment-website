@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { User } from '@/app/models/User';
+import { User } from '@/app/models/User'
 import { verifyRefreshToken, clearAuthCookies, getTokensFromCookies } from '@/lib/tokens';
 
 export async function POST(request: NextRequest) {
