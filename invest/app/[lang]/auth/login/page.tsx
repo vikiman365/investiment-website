@@ -15,6 +15,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import { FaFacebook } from "react-icons/fa";
 import { FaGoogle } from "react-icons/fa";
 
+import  { Route } from 'next'
 // Define theme colors (same as signup page)
 const theme = {
   colors: {
@@ -427,7 +428,7 @@ export default function LoginPage() {
                 />
                 <span style={{ fontSize: '0.875rem' }}>Remember me</span>
               </label>
-              <Link href="/auth/forgot-password" style={{ color: theme.colors.primary[600], fontSize: '0.875rem', textDecoration: 'none' }}>
+              <Link href={"/auth/forgot-password" as Route} style={{ color: theme.colors.primary[600], fontSize: '0.875rem', textDecoration: 'none' }}>
                 Forgot password?
               </Link>
             </div>
@@ -445,11 +446,11 @@ export default function LoginPage() {
 
           <LinkText>
             Don&apos;t have an account?{' '}
-            <Link href="/auth/signup">Sign up here</Link>
+            <Link href={"/auth/signup"  as Route}>Sign up here</Link>
           </LinkText>
           
           <LinkText style={{ marginTop: '0.5rem' }}>
-            <Link href="/auth/forgot-password">Forgot your password?</Link>
+            <Link href={"/auth/forgot-password" as Route}>Forgot your password?</Link>
           </LinkText>
         </LoginCard>
       </LoginContainer>

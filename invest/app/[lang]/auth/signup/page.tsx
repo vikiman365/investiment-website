@@ -12,6 +12,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser, faEnvelope, faLock, faArrowRight, faCheckCircle, faExclamationCircle } from '@fortawesome/free-solid-svg-icons'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import {Route} from 'next'
 
 // Define theme colors (replace with your theme)
 const theme = {
@@ -515,7 +516,7 @@ export default function SignupPage() {
 
           <LinkText>
             Already have an account?{' '}
-            <Link href="/auth/login">Sign in here</Link>
+            <Link href={"/auth/login" as Route}  >Sign in here</Link>
           </LinkText>
         </SignupCard>
       </SignupContainer>
