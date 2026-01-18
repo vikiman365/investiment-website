@@ -15,9 +15,13 @@
     "@hookform/resolvers": "^3.3.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/styled-components": "^5.1.26",
+    "bcryptjs": "^3.0.3",
+    "cookie": "^1.1.1",
     "framer-motion": "^10.16.0",
     "i18next": "^23.4.6",
     "i18next-browser-languagedetector": "^7.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.1.4",
     "next": "14.0.0",
     "react": "^18",
     "react-countup": "^6.4.0",
@@ -31,6 +35,9 @@
     "zod": "^3.22.2"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mongoose": "^5.11.97",
     "@types/next": "^8.0.7",
     "@types/node": "^20",
     "@types/react": "^18",
