@@ -1,45 +1,42 @@
-import mongoose, { Mongoose } from 'mongoose';
+import mongoose from 'mongoose'
 
-const MONGODB_URI = process.env.MONGODB_URI!;
+const MONGODB_URI = process.env.MONGODB_URI!
 
 if (!MONGODB_URI) {
-  throw new Error('Please define MONGODB_URI in .env.local');
+  throw new Error('Please define MONGODB_URI in .env.local')
 }
 
-declare global {
-  var mongoose: {
-    conn: Mongoose | null;
-    promise: Promise<Mongoose> | null;
-  } | undefined;
-}
+let isConnected = false
+let connectionPromise: Promise<typeof mongoose> | null = null
 
-const cached = global.mongoose || { conn: null, promise: null };
-
-if (!global.mongoose) {
-  global.mongoose = cached;
-}
-
-export async function connectDB(): Promise<Mongoose> {
-  if (cached.conn) {
-    return cached.conn!;
+export async function connectDB(): Promise<typeof mongoose> {
+  if (isConnected && mongoose.connection.readyState === 1) {
+    console.log('✅ Using existing MongoDB connection')
+    return mongoose
   }
 
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
-
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
-    });
+  if (connectionPromise) {
+    console.log('⏳ Waiting for existing connection...')
+    return connectionPromise
   }
 
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
+  console.log('🔄 Establishing new MongoDB connection...')
+  
+  connectionPromise = mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+    maxPoolSize: 10,
+  })
+    .then((conn) => {
+      isConnected = true
+      console.log('✅ MongoDB connected successfully')
+      return conn
+    })
+    .catch((error) => {
+      console.error('❌ MongoDB connection failed:', error)
+      connectionPromise = null
+      throw error
+    })
 
-  return cached.conn;
+  return connectionPromise
 }

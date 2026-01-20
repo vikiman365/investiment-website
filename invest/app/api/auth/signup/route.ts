@@ -1,99 +1,155 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { User } from '@/app/models/User'
+import {connectDB} from '@/lib/db'
+import { generateAccessToken, generateRefreshToken } from '@/lib/jwt'
+import { setAuthCookies } from '@/lib/cookies'
+import bcrypt from 'bcryptjs'
 
-export interface IUser extends mongoose.Document {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  isVerified: boolean;
-  refreshTokens: {
-    token: string;
-    expiresAt: Date;
-    createdAt: Date;
-  }[];
-  createdAt: Date;
-  updatedAt: Date;
-  comparePassword(candidatePassword: string): Promise<boolean>;
+type ResponseData = {
+  success?: boolean
+  message?: string
+  user?: any
+  error?: string
+  details?: any[]
+  accessToken?: string
 }
 
-const UserSchema = new mongoose.Schema<IUser>(
-  {
-    firstName: {
-      type: String,
-      required: [true, 'First name is required'],
-      trim: true,
-      minlength: 2,
-    },
-    lastName: {
-      type: String,
-      required: [true, 'Last name is required'],
-      trim: true,
-      minlength: 2,
-    },
-    email: {
-      type: String,
-      required: [true, 'Email is required'],
-      unique: true,
-      lowercase: true,
-      trim: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
-    },
-    password: {
-      type: String,
-      required: [true, 'Password is required'],
-      minlength: 8,
-    },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
-    refreshTokens: [
-      {
-        token: String,
-        expiresAt: Date,
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
-  },
-  {
-    timestamps: true,
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ResponseData>
+) {
+  // Handle only POST requests
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST'])
+    return res.status(405).json({ 
+      error: `Method ${req.method} Not Allowed` 
+    })
   }
-);
 
-// Hash password before saving
-UserSchema.pre('save', async function() {
-  if (!this.isModified('password')) return;
-  
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-});
+  try {
+    // Connect to database
+    await connectDB()
 
-// Method to compare password
-UserSchema.methods.comparePassword = async function(
-  candidatePassword: string
-): Promise<boolean> {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
+    const { firstName, lastName, email, password } = req.body
 
-// JSON transformation to remove sensitive data - FIXED
-UserSchema.set('toJSON', {
-  virtuals: true,
-  transform: function(_, ret: Record<string, any>) {
-    // Use optional chaining or check if property exists
-    if (ret.password !== undefined) {
-      delete ret.password;
+    // Validation
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        details: [
+          ...(!firstName ? [{ field: 'firstName', message: 'First name is required' }] : []),
+          ...(!lastName ? [{ field: 'lastName', message: 'Last name is required' }] : []),
+          ...(!email ? [{ field: 'email', message: 'Email is required' }] : []),
+          ...(!password ? [{ field: 'password', message: 'Password is required' }] : []),
+        ]
+      })
     }
-    if (ret.refreshTokens !== undefined) {
-      delete ret.refreshTokens;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() })
+    if (existingUser) {
+      return res.status(409).json({
+        error: 'User already exists',
+        message: 'A user with this email already exists'
+      })
     }
-    return ret;
-  },
-});
 
-// Virtual for full name
-UserSchema.virtual('fullName').get(function() {
-  return `${this.firstName} ${this.lastName}`;
-});
+    // Generate refresh token
+    const refreshToken = generateRefreshToken({ userId: 'temp', email: email.toLowerCase() })
+    
+    // Hash the refresh token before storing
+    const salt = await bcrypt.genSalt(10)
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, salt)
 
-export const User = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+    // Calculate expiration (7 days from now)
+    const refreshTokenExpires = new Date()
+    refreshTokenExpires.setDate(refreshTokenExpires.getDate() + 7)
+
+    // Create new user with initial refresh token
+    const user = await User.create({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.toLowerCase().trim(),
+      password, // Will be hashed by the pre-save hook
+      refreshTokens: [{
+        token: hashedRefreshToken,
+        expiresAt: refreshTokenExpires,
+      }]
+    })
+
+    // Generate tokens with actual user ID
+    const accessToken = generateAccessToken({ 
+      userId: user._id.toString(), 
+      email: user.email 
+    })
+    
+    // Regenerate refresh token with actual user ID
+    const newRefreshToken = generateRefreshToken({ 
+      userId: user._id.toString(), 
+      email: user.email 
+    })
+    
+    // Hash the new refresh token
+    const newHashedRefreshToken = await bcrypt.hash(newRefreshToken, salt)
+    
+    // Update user with new hashed refresh token
+    await User.findByIdAndUpdate(user._id, {
+      $set: {
+        'refreshTokens.0.token': newHashedRefreshToken,
+        'refreshTokens.0.expiresAt': refreshTokenExpires,
+      }
+    })
+
+    // Set cookies
+    setAuthCookies(res, accessToken, newRefreshToken)
+
+    // Convert to JSON (password will be removed by the toJSON transform)
+    const userResponse = user.toJSON()
+
+    // Return response with user data and access token
+    return res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      user: {
+        id: userResponse._id || userResponse.id,
+        firstName: userResponse.firstName,
+        lastName: userResponse.lastName,
+        email: userResponse.email,
+        isVerified: userResponse.isVerified,
+        createdAt: userResponse.createdAt,
+        updatedAt: userResponse.updatedAt,
+        fullName: userResponse.fullName,
+      },
+      accessToken // Also return in response for client-side storage if needed
+    })
+
+  } catch (error: any) {
+    console.error('Signup error:', error)
+    
+    // Mongoose validation error
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map((err: any) => ({
+        field: err.path,
+        message: err.message
+      }))
+      
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors
+      })
+    }
+    
+    // Duplicate key error (unique constraint)
+    if (error.code === 11000) {
+      return res.status(409).json({
+        error: 'Duplicate key error',
+        message: 'A user with this email already exists'
+      })
+    }
+
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message || 'Something went wrong'
+    })
+  }
+}
