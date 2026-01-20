@@ -12,7 +12,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser, faEnvelope, faLock, faArrowRight, faCheckCircle, faExclamationCircle } from '@fortawesome/free-solid-svg-icons'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import {Route} from 'next'
+import { Router } from 'next/router'
+import { Route } from 'next'
 
 // Define theme colors (replace with your theme)
 const theme = {
@@ -249,6 +250,24 @@ const SuccessMessage = styled.div`
   gap: 0.75rem;
 `
 
+const DebugInfo = styled.div`
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+  
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+`
+
 const signupSchema = z.object({
   firstName: z.string()
     .min(2, 'First name must be at least 2 characters')
@@ -278,6 +297,7 @@ type SignupFormData = z.infer<typeof signupSchema>
 export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
   const router = useRouter()
 
   const {
@@ -299,25 +319,122 @@ export default function SignupPage() {
 
   const onSubmit = async (data: SignupFormData) => {
     setIsSubmitting(true)
+    setDebugInfo(null) // Clear previous debug info
     
     try {
       // Prepare the data for API (remove confirmPassword and terms)
       const { confirmPassword, terms, ...apiData } = data
       
+      console.log('🚀 Submitting signup request...')
+      console.log('📦 Request data:', apiData)
+      console.log('🌐 API URL:', '/api/auth/signup')
+      
+      const requestInfo = {
+        timestamp: new Date().toISOString(),
+        method: 'POST',
+        url: '/api/auth/signup',
+        requestData: apiData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      }
+      
+      console.log('📤 Request details:', requestInfo)
+      
+      // Make the API call
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(apiData),
-        credentials: 'include', // Important for cookies
+        credentials: 'include',
       })
 
-      const result = await response.json()
-
+      // Log response details
+      console.log('📥 Response received')
+      console.log('📊 Response status:', response.status)
+      console.log('📊 Response status text:', response.statusText)
+      console.log('🔗 Response URL:', response.url)
+      console.log('📋 Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      // First, get the response as text
+      const responseText = await response.text()
+      console.log('📄 Raw response text:', responseText)
+      
+      let result
+      try {
+        // Try to parse as JSON
+        result = responseText ? JSON.parse(responseText) : null
+        console.log('✅ Parsed JSON result:', result)
+      } catch (jsonError) {
+  console.error('❌ Failed to parse JSON:', jsonError)
+  console.error('Raw response that failed to parse:', responseText.substring(0, 500))
+  
+  // Create debug info object - properly type check the error
+  const debugData = {
+    request: requestInfo,
+    response: {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries()),
+      text: responseText.substring(0, 1000),
+      url: response.url,
+      type: response.type,
+      ok: response.ok,
+      redirected: response.redirected,
+    },
+    error: {
+      name: 'JSONParseError',
+      message: jsonError instanceof Error ? jsonError.message : String(jsonError),
+      stack: jsonError instanceof Error ? jsonError.stack : undefined
+    }
+  }
+  
+  setDebugInfo(debugData)
+  
+  throw new Error(`Server returned invalid JSON: ${responseText.substring(0, 200)}...`)
+}
+      // Check if response is OK
       if (!response.ok) {
-        throw new Error(result.error || 'Signup failed. Please try again.')
+        console.error('❌ Response not OK:', response.status, response.statusText)
+        console.error('❌ Error details from server:', result)
+        
+        const debugData = {
+          request: requestInfo,
+          response: {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            body: result,
+            url: response.url,
+            ok: response.ok,
+          }
+        }
+        
+        setDebugInfo(debugData)
+        
+        throw new Error(result?.error || `Signup failed with status: ${response.status}`)
       }
+
+      // Success!
+      console.log('🎉 Signup successful!', result)
+      
+      const debugData = {
+        request: requestInfo,
+        response: {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: result,
+          url: response.url,
+          ok: response.ok,
+        },
+        success: true
+      }
+      
+      setDebugInfo(debugData)
 
       // Show success message
       toast.success('🎉 Account created successfully! Redirecting to dashboard...', {
@@ -339,7 +456,23 @@ export default function SignupPage() {
       }, 2000)
 
     } catch (error: any) {
-      console.error('Signup error:', error)
+      console.error('❌ Signup error:', error)
+      console.error('❌ Error stack:', error.stack)
+      
+      // Log additional debug info
+      if (!debugInfo) {
+        const errorDebugInfo = {
+          error: {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+          },
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          location: window.location.href
+        }
+        setDebugInfo(errorDebugInfo)
+      }
       
       toast.error(error.message || 'An error occurred during signup', {
         position: "top-right",
@@ -514,9 +647,16 @@ export default function SignupPage() {
             </SubmitButton>
           </Form>
 
+          {debugInfo && (
+            <DebugInfo>
+              <h4 style={{ marginBottom: '0.5rem', color: '#495057' }}>Debug Information:</h4>
+              <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+            </DebugInfo>
+          )}
+
           <LinkText>
             Already have an account?{' '}
-            <Link href={"/auth/login" as Route}  >Sign in here</Link>
+            <Link href={"/auth/login" as Route}>Sign in here</Link>
           </LinkText>
         </SignupCard>
       </SignupContainer>
